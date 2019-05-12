@@ -1,6 +1,8 @@
 import numpy
 # used to import sigmoid function
 import scipy.special 
+# used for plotting
+import matplotlib.pyplot as plt
 
 class NeuralNet():
     
@@ -35,7 +37,9 @@ class NeuralNet():
 
     def feedForward(self, inputData):
         # W * I - Inputs feed into Weights
-        inputData = inputData
+        inputData = numpy.array(inputData, ndmin=2).T
+
+        # print("1 ", inputData.shape)
         
         for n in range(1, self.currentLayers):
             layerOutput = numpy.dot(self.netMap[n]["weights"], inputData)
@@ -43,47 +47,135 @@ class NeuralNet():
             self.netMap[n]["output"] = inputData
 
         finalOutput = inputData
-
         return finalOutput
 
-    def backPropagation(self, targets):
+    def backPropagation(self, targets, inputs):
         
         # changeWeight = -lr ( [Ek * Ok (1 - Ok) * Oj] )
 
         finalOutput = self.netMap[self.currentLayers - 1]["output"]
-        outputError = targets - finalOutput
+        targets = numpy.array(targets, ndmin=2).T
+        newError = targets - finalOutput
 
-        for l in range(self.currentLayers - 1, 1, 1):
-            if (l - 1) != 0:
-                currentError = outputError
-                currentOutput = self.netMap[l]["output"]
+        for l in range(self.currentLayers - 1, 0, -1):
 
-                prevOutput = numpy.transpose(self.netMap[l-1]["output"])
+            currentOutput = self.netMap[l]["output"]
 
-                self.netMap[l]["weights"] += -(self.learningRate) * numpy.dot((currentError * currentOutput * (1 - currentError)) ,prevOutput)
+            if (l - 1) > 0:
+                prevOutput = self.netMap[l-1]["output"].T
+            else:
+                prevOutput = numpy.array(inputs, ndmin=2)
 
-                prevError = numpy.dot(numpy.transpose(self.netMap[l]["weights"]), currentError)
-                outputError = prevError 
+            # print(l)
+            # print(currentOutput.shape)
+            # print((newError * currentOutput * (1 - currentOutput)).shape)
+            # print(prevOutput.shape)
+            # print(self.netMap[l]["weights"].shape)
+
+            # Update weights based on graient descent, chain rule of sigmoid
+            self.netMap[l]["weights"] += (self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)
+            
+            # Spread error to weigths
+            newError = numpy.dot(self.netMap[l]["weights"].T, newError)                
+
+        # exit()
 
 
-    def trainNetwork(self):
-        for n in range(1, self.currentLayers):
-            print(n)
-            print(self.netMap[n])
-            print("weights ", self.netMap[n]["weights"].shape)
-            print("output ", self.netMap[n]["output"].shape)
-            print("\n")
+    def trainNetwork(self, inputData, targetData, epochs):
+        for i in range(1, epochs):
+            print("EPOCH ", i)
+            for index, value in enumerate(inputData):
+                self.feedForward(value)
+                self.backPropagation(targetData[index], value)
 
-# print((numpy.random.rand(3, 2) - 0.5))
+    def testNetwork(self, inputData, targetData):
+        total_test = 0
+        correct = []
+        for index, value in enumerate(inputData):
 
-net = NeuralNet(learningRate=0.5, hiddenSize=4)
+            output = self.feedForward(value)
+            
+            # correct index, argmax returns index of highest value
+            correctLabel = int(numpy.argmax(targetData[index]))
 
-net.addLayer(inputLayer=True, inputSize=5)
-net.addLayer()
-net.addLayer()
-net.addLayer(outputLayer=True, outputSize=2)
-inputData = (numpy.random.rand(5, 1) - 0.5)
-# print(net.feedForward(inputData))
-net.feedForward(inputData)
-net.trainNetwork()
+            # Prediction from network, index of highest prob
+            prediction = numpy.argmax(output)
+
+            # if it matches, append correct list
+            if prediction == correctLabel:
+                correct.append(1)
+
+            total_test = total_test + 1
+        
+        print("Performance: {}".format(len(correct)/total_test))
+        print("Out of {} tests, {} predictions were correct".format(total_test, len(correct)))
+            
+
+
+# Loading training data
+data = open("mnist_train.csv", "r")
+trainInfo = data.readlines() # all data in file, first index is target value
+data.close()
+
+# View Data
+# pictureData = trainInfo[0].split(",")[1:] # First index is target value
+# reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
+# scaled = (((reShaped) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
+# plt.imshow(scaled)
+# plt.show()
+
+# Format Train Data Input
+trainData = []
+targetData = []
+
+for d in trainInfo:
+    # Extracting array data
+    arrayData = d.split(",")
+
+    # inputData = numpy.array(arrayData[1:], ndmin=2).T
+    scaled = (((numpy.asfarray(arrayData[1:])) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
+    
+    # Creating target data
+    targets = numpy.zeros(10) + 0.01
+    label = int(arrayData[0])
+    targets[label] = 0.99
+
+    trainData.append(scaled)
+    targetData.append(targets)
+
+# Loading training data
+data = open("mnist_test.csv", "r")
+testInfo = data.readlines() # all data in file, first index is target value
+data.close()
+
+# Format Test Data Input
+testData = []
+testTargetData = []
+
+for d in testInfo:
+    # Extracting array data
+    arrayData = d.split(",")
+    scaled = (((numpy.asfarray(arrayData[1:])) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
+
+    # Creating target data
+    targets = numpy.zeros(10) + 0.01
+    label = int(arrayData[0])
+    targets[label] = 0.99
+
+    testData.append(scaled)
+    testTargetData.append(targets)
+
+net = NeuralNet(learningRate=0.1, hiddenSize=300)
+net.addLayer(inputLayer=True, inputSize=784)
+net.addLayer(outputLayer=True, outputSize=10)
+net.trainNetwork(trainData, targetData, epochs=6)
+net.testNetwork(trainData, targetData)
+
+# testArr = numpy.random.rand(10, 1)
+
+# print(testArr.shape)
+# print(testArr)
+# print(testArr.transpose())
+
+
 
