@@ -1,4 +1,6 @@
 import numpy
+# used to import sigmoid function
+import scipy.special 
 
 class NeuralNet():
     
@@ -7,6 +9,8 @@ class NeuralNet():
         self.currentLayers = 1
         self.hiddenSize = hiddenSize # Number of nodes in hidden layer
         self.netMap = {} # Holds weight mappings
+        # activation function
+        self.activation = lambda x: scipy.special.expit(x)
 
     def addLayer(self, inputSize=0, outputSize=0, inputLayer=False, outputLayer=False):
         
@@ -35,8 +39,10 @@ class NeuralNet():
         
         for n in range(1, self.currentLayers):
             layerOutput = numpy.dot(self.netMap[n], inputData)
-            inputData = layerOutput
-            print(inputData.shape)
+            inputData = self.activation(layerOutput)
+            print(layerOutput)
+            print(inputData)
+            print("\n")
 
         finalOutput = inputData
 
