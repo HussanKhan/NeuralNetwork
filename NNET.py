@@ -18,42 +18,60 @@ class NeuralNet():
             # from input to hidden R x C 300 x 782, input = 782 x 1 
             # Output to next layer = 300 x 1
             inputHidden = (numpy.random.rand(self.hiddenSize, inputSize) - 0.5)
-            self.netMap[self.currentLayers] = inputHidden
+            self.netMap[self.currentLayers] = {"weights": inputHidden}
         elif outputLayer:
             # from hidden to output R x C 10 x 300, input = 300 x 1
             # Final out 10 x 1 
             hiddenOutput = (numpy.random.rand(outputSize, self.hiddenSize) - 0.5)
-            self.netMap[self.currentLayers] = hiddenOutput
+            self.netMap[self.currentLayers] = {"weights": hiddenOutput}
         else:
             # hidden sandwich layer R x C 300 x 300, input = 300 x 1,
             # W * I - 300 x 300 * 300 x 1
             # Output is 300 x 1
             hiddenLayer = (numpy.random.rand(self.hiddenSize, self.hiddenSize) - 0.5)
-            self.netMap[self.currentLayers] = hiddenLayer
+            self.netMap[self.currentLayers] = {"weights": hiddenLayer}
 
         self.currentLayers = self.currentLayers + 1 # Increments layer
 
     def feedForward(self, inputData):
-
+        # W * I - Inputs feed into Weights
         inputData = inputData
         
         for n in range(1, self.currentLayers):
-            layerOutput = numpy.dot(self.netMap[n], inputData)
+            layerOutput = numpy.dot(self.netMap[n]["weights"], inputData)
             inputData = self.activation(layerOutput)
-            print(layerOutput)
-            print(inputData)
-            print("\n")
+            self.netMap[n]["output"] = inputData
 
         finalOutput = inputData
 
         return finalOutput
 
-    def trainNetwork(self):
+    def backPropagation(self, targets):
         
-        for k, v in self.netMap.items():
-            print(k)
-            print(v)
-            print(v.shape)
+        # changeWeight = -lr ( [Ek * Ok (1 - Ok) * Oj] )
+
+        finalOutput = self.netMap[self.currentLayers - 1]["output"]
+        outputError = targets - finalOutput
+
+        for l in range(self.currentLayers - 1, 1, 1):
+            if (l - 1) != 0:
+                currentError = outputError
+                currentOutput = self.netMap[l]["output"]
+
+                prevOutput = numpy.transpose(self.netMap[l-1]["output"])
+
+                self.netMap[l]["weights"] += -(self.learningRate) * numpy.dot((currentError * currentOutput * (1 - currentError)) ,prevOutput)
+
+                prevError = numpy.dot(numpy.transpose(self.netMap[l]["weights"]), currentError)
+                outputError = prevError 
+
+
+    def trainNetwork(self):
+        for n in range(1, self.currentLayers):
+            print(n)
+            print(self.netMap[n])
+            print("weights ", self.netMap[n]["weights"].shape)
+            print("output ", self.netMap[n]["output"].shape)
             print("\n")
 
 # print((numpy.random.rand(3, 2) - 0.5))
@@ -64,6 +82,8 @@ net.addLayer(inputLayer=True, inputSize=5)
 net.addLayer()
 net.addLayer()
 net.addLayer(outputLayer=True, outputSize=2)
-net.trainNetwork()
 inputData = (numpy.random.rand(5, 1) - 0.5)
-print(net.feedForward(inputData))
+# print(net.feedForward(inputData))
+net.feedForward(inputData)
+net.trainNetwork()
+
