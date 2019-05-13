@@ -1,10 +1,9 @@
 import numpy
 # used to import sigmoid function
 import scipy.special 
-# used for plotting
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-class NeuralNet():
+class NeuralOne():
     
     def __init__(self, learningRate, hiddenSize):
         self.learningRate = learningRate # Learning Rate
@@ -55,7 +54,7 @@ class NeuralNet():
 
         finalOutput = self.netMap[self.currentLayers - 1]["output"]
         targets = numpy.array(targets, ndmin=2).T
-        newError = targets - finalOutput
+        newError = finalOutput - targets
 
         for l in range(self.currentLayers - 1, 0, -1):
 
@@ -73,7 +72,8 @@ class NeuralNet():
             # print(self.netMap[l]["weights"].shape)
 
             # Update weights based on graient descent, chain rule of sigmoid
-            self.netMap[l]["weights"] += (self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)
+            # Go opposite of slope
+            self.netMap[l]["weights"] -= ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
             
             # Spread error to weigths
             newError = numpy.dot(self.netMap[l]["weights"].T, newError)                
@@ -84,7 +84,7 @@ class NeuralNet():
     def trainNetwork(self, inputData, targetData, epochs):
         for i in range(1, epochs):
             print("EPOCH ", i)
-            for index, value in enumerate(inputData):
+            for index, value in tqdm(enumerate(inputData)):
                 self.feedForward(value)
                 self.backPropagation(targetData[index], value)
 
@@ -109,73 +109,3 @@ class NeuralNet():
         
         print("Performance: {}".format(len(correct)/total_test))
         print("Out of {} tests, {} predictions were correct".format(total_test, len(correct)))
-            
-
-
-# Loading training data
-data = open("mnist_train.csv", "r")
-trainInfo = data.readlines() # all data in file, first index is target value
-data.close()
-
-# View Data
-# pictureData = trainInfo[0].split(",")[1:] # First index is target value
-# reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
-# scaled = (((reShaped) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
-# plt.imshow(scaled)
-# plt.show()
-
-# Format Train Data Input
-trainData = []
-targetData = []
-
-for d in trainInfo:
-    # Extracting array data
-    arrayData = d.split(",")
-
-    # inputData = numpy.array(arrayData[1:], ndmin=2).T
-    scaled = (((numpy.asfarray(arrayData[1:])) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
-    
-    # Creating target data
-    targets = numpy.zeros(10) + 0.01
-    label = int(arrayData[0])
-    targets[label] = 0.99
-
-    trainData.append(scaled)
-    targetData.append(targets)
-
-# Loading training data
-data = open("mnist_test.csv", "r")
-testInfo = data.readlines() # all data in file, first index is target value
-data.close()
-
-# Format Test Data Input
-testData = []
-testTargetData = []
-
-for d in testInfo:
-    # Extracting array data
-    arrayData = d.split(",")
-    scaled = (((numpy.asfarray(arrayData[1:])) / 255.0) * 0.99) + 0.01 # Scaled from 0-255, to 0.01-1.00
-
-    # Creating target data
-    targets = numpy.zeros(10) + 0.01
-    label = int(arrayData[0])
-    targets[label] = 0.99
-
-    testData.append(scaled)
-    testTargetData.append(targets)
-
-net = NeuralNet(learningRate=0.1, hiddenSize=300)
-net.addLayer(inputLayer=True, inputSize=784)
-net.addLayer(outputLayer=True, outputSize=10)
-net.trainNetwork(trainData, targetData, epochs=6)
-net.testNetwork(trainData, targetData)
-
-# testArr = numpy.random.rand(10, 1)
-
-# print(testArr.shape)
-# print(testArr)
-# print(testArr.transpose())
-
-
-
