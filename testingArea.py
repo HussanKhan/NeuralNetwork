@@ -59,11 +59,18 @@ for d in testInfo:
     testData.append(scaled)
     testTargetData.append(targets)
 
-net = NeuralOne(learningRate=0.1, hiddenSize=200)
+net = NeuralOne(learningRate=0.1, hiddenSize=300)
 net.addLayer(inputLayer=True, inputSize=784)
 net.addLayer(outputLayer=True, outputSize=10)
 net.trainNetwork(trainData, targetData, epochs=6)
 net.testNetwork(trainData, targetData)
+
+# View Data
+print(testTargetData[1])
+pictureData = net.feedBackward(testTargetData[1])
+reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
+plt.imshow(reShaped)
+plt.show()
 
 # testArr = numpy.random.rand(10, 1)
 

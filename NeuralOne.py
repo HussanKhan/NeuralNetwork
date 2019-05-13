@@ -12,6 +12,8 @@ class NeuralOne():
         self.netMap = {} # Holds weight mappings
         # activation function
         self.activation = lambda x: scipy.special.expit(x)
+        self.reverseActivation = lambda x: scipy.special.logit(x)
+        pass
 
     def addLayer(self, inputSize=0, outputSize=0, inputLayer=False, outputLayer=False):
         
@@ -70,8 +72,17 @@ class NeuralOne():
             self.netMap[l]["weights"] += ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
             
             # Spread error to weigths
-            newError = numpy.dot(self.netMap[l]["weights"].T, newError)                
+            newError = numpy.dot(self.netMap[l]["weights"].T, newError)
 
+    def feedBackward(self, target):
+        # W.T * T - Feeds Target to weights in reverse order
+        target = self.reverseActivation(numpy.array(target, ndmin=2).T)
+        
+        for i in range(self.currentLayers - 1, 0, -1):
+            layerOutput = numpy.dot(self.netMap[i]["weights"].T, target)
+            print(layerOutput.shape)
+            target = layerOutput
+        return target
 
     def trainNetwork(self, inputData, targetData, epochs):
         for i in range(1, epochs):
