@@ -37,8 +37,6 @@ class NeuralOne():
     def feedForward(self, inputData):
         # W * I - Inputs feed into Weights
         inputData = numpy.array(inputData, ndmin=2).T
-
-        # print("1 ", inputData.shape)
         
         for n in range(1, self.currentLayers):
             layerOutput = numpy.dot(self.netMap[n]["weights"], inputData)
@@ -54,7 +52,9 @@ class NeuralOne():
 
         finalOutput = self.netMap[self.currentLayers - 1]["output"]
         targets = numpy.array(targets, ndmin=2).T
-        newError = finalOutput - targets
+        
+        # Gives us sign we need to update weights
+        newError = targets - finalOutput
 
         for l in range(self.currentLayers - 1, 0, -1):
 
@@ -65,20 +65,12 @@ class NeuralOne():
             else:
                 prevOutput = numpy.array(inputs, ndmin=2)
 
-            # print(l)
-            # print(currentOutput.shape)
-            # print((newError * currentOutput * (1 - currentOutput)).shape)
-            # print(prevOutput.shape)
-            # print(self.netMap[l]["weights"].shape)
-
             # Update weights based on graient descent, chain rule of sigmoid
-            # Go opposite of slope
-            self.netMap[l]["weights"] -= ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
+            # Adding because error gives us sign, (See Perceptron Training by Udacity on Youtube)
+            self.netMap[l]["weights"] += ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
             
             # Spread error to weigths
             newError = numpy.dot(self.netMap[l]["weights"].T, newError)                
-
-        # exit()
 
 
     def trainNetwork(self, inputData, targetData, epochs):
