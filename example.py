@@ -1,9 +1,5 @@
 import numpy
-# used to import sigmoid function
-import scipy.special 
-# used for plotting
 import matplotlib.pyplot as plt
-
 from NeuralOne import NeuralOne
 
 # Loading training data
@@ -59,23 +55,41 @@ for d in testInfo:
     testData.append(scaled)
     testTargetData.append(targets)
 
-net = NeuralOne(learningRate=0.1, hiddenSize=300)
+net = NeuralOne(learningRate=0.001, hiddenSize=200)
 net.loadNeuralNet("mnist_net")
 # net.addLayer(inputLayer=True, inputSize=784)
+# net.addLayer()
+# net.addLayer()
+# net.addLayer()
 # net.addLayer(outputLayer=True, outputSize=10)
 # net.trainNetwork(trainData, targetData, epochs=6)
 # net.testNetwork(testData, testTargetData)
 # net.saveNeuralNet("mnist_net")
 
-
+# Backwards feedback to see what network thinks
 while True:
-    testTar = int(input("BackTest Target: "))
-    print(numpy.argmax(testTargetData[testTar]))
-    pictureData = net.feedBackward(testTargetData[testTar])
-    reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
-    plt.imshow(reShaped, cmap='Greys', interpolation='None')
-    # View Data
-    plt.show()
+    testTar = input("BackTest Target: ")
+    if testTar != "q":
+        testTar = int(testTar)
+        print(numpy.argmax(testTargetData[testTar]))
+        pictureData = net.feedBackward(testTargetData[testTar])
+        reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
+        plt.imshow(reShaped, cmap='Greys', interpolation='None')
+        # View Data
+        plt.show()
+    else:
+        break
+
+# Basic prediction
+while True:
+    testTar = input("Predict: ")
+    if testTar != "q":
+        testTar = int(testTar)
+        print(numpy.argmax(targetData[testTar]))
+        pictureData = net.predict(trainData[testTar])
+        print(pictureData)
+    else:
+        break
 
 
 

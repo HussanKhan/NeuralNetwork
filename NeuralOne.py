@@ -6,7 +6,7 @@ import json
 
 class NeuralOne():
     
-    def __init__(self, learningRate, hiddenSize):
+    def __init__(self, learningRate=0.001, hiddenSize=1):
         self.learningRate = learningRate # Learning Rate
         self.currentLayers = 1
         self.hiddenSize = hiddenSize # Number of nodes in hidden layer
@@ -50,6 +50,11 @@ class NeuralOne():
 
         finalOutput = inputData
         return finalOutput
+
+    # Returns output matrix from neural net
+    def predict(self, inputData):
+        result = self.feedForward(inputData)
+        return result
 
     # BackProp through network, updates weights
     def backPropagation(self, targets, inputs):
