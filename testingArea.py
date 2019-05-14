@@ -60,17 +60,24 @@ for d in testInfo:
     testTargetData.append(targets)
 
 net = NeuralOne(learningRate=0.1, hiddenSize=300)
-net.addLayer(inputLayer=True, inputSize=784)
-net.addLayer(outputLayer=True, outputSize=10)
-net.trainNetwork(trainData, targetData, epochs=6)
-net.testNetwork(trainData, targetData)
+net.loadNeuralNet("mnist_net")
+# net.addLayer(inputLayer=True, inputSize=784)
+# net.addLayer(outputLayer=True, outputSize=10)
+# net.trainNetwork(trainData, targetData, epochs=6)
+# net.testNetwork(testData, testTargetData)
+# net.saveNeuralNet("mnist_net")
 
-# View Data
-print(testTargetData[1])
-pictureData = net.feedBackward(testTargetData[1])
-reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
-plt.imshow(reShaped)
-plt.show()
+
+while True:
+    testTar = int(input("BackTest Target: "))
+    print(numpy.argmax(testTargetData[testTar]))
+    pictureData = net.feedBackward(testTargetData[testTar])
+    reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
+    plt.imshow(reShaped, cmap='Greys', interpolation='None')
+    # View Data
+    plt.show()
+
+
 
 # testArr = numpy.random.rand(10, 1)
 

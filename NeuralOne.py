@@ -2,6 +2,7 @@ import numpy
 # used to import sigmoid function
 import scipy.special 
 from tqdm import tqdm
+import json
 
 class NeuralOne():
     
@@ -15,6 +16,7 @@ class NeuralOne():
         self.reverseActivation = lambda x: scipy.special.logit(x)
         pass
 
+    # Adds layers to netMap (Network Map)
     def addLayer(self, inputSize=0, outputSize=0, inputLayer=False, outputLayer=False):
         
         if inputLayer:
@@ -36,6 +38,7 @@ class NeuralOne():
 
         self.currentLayers = self.currentLayers + 1 # Increments layer
 
+    # Feeds forward through network, returns output
     def feedForward(self, inputData):
         # W * I - Inputs feed into Weights
         inputData = numpy.array(inputData, ndmin=2).T
@@ -48,6 +51,7 @@ class NeuralOne():
         finalOutput = inputData
         return finalOutput
 
+    # BackProp through network, updates weights
     def backPropagation(self, targets, inputs):
         
         # changeWeight = -lr ( [Ek * Ok (1 - Ok) * Oj] )
@@ -74,6 +78,7 @@ class NeuralOne():
             # Spread error to weigths
             newError = numpy.dot(self.netMap[l]["weights"].T, newError)
 
+    # Used to analyze network, returns feedback signal to see what network sees
     def feedBackward(self, target):
         # W.T * T - Feeds Target to weights in reverse order
         target = self.reverseActivation(numpy.array(target, ndmin=2).T)
@@ -84,6 +89,7 @@ class NeuralOne():
             target = layerOutput
         return target
 
+    # Trains network using input and targets
     def trainNetwork(self, inputData, targetData, epochs):
         for i in range(1, epochs):
             print("EPOCH ", i)
@@ -91,6 +97,7 @@ class NeuralOne():
                 self.feedForward(value)
                 self.backPropagation(targetData[index], value)
 
+    # Tests network based on testInput and Target data
     def testNetwork(self, inputData, targetData):
         total_test = 0
         correct = []
@@ -112,3 +119,47 @@ class NeuralOne():
         
         print("Performance: {}".format(len(correct)/total_test))
         print("Out of {} tests, {} predictions were correct".format(total_test, len(correct)))
+
+    # Saves network as json
+    def saveNeuralNet(self, name):
+
+        formatNet = dict(self.netMap)
+
+        for i, w in formatNet.items():
+
+            storeW = formatNet[i]["weights"].tolist()
+            storeO = formatNet[i]["output"].tolist()
+            
+            formatNet[i]["weights"] =  storeW
+            formatNet[i]["output"] =  storeO
+
+        with open("{}.json".format(name), "w") as file:
+            json.dump({"neuralNet": formatNet}, file)
+
+        self.loadNeuralNet(name)
+    
+    # Loads saved network
+    def loadNeuralNet(self, name):
+        
+        with open("{}.json".format(name), "r") as file:
+            data = json.load(file)
+            file.close()
+
+        jsonNet = data["neuralNet"]
+        savedNet = {}
+        
+        for i, w in jsonNet.items():
+
+            newWeight = jsonNet[i]["weights"]
+            newOutput = jsonNet[i]["output"]
+
+            i = int(i)
+
+            savedNet[i] = {}
+            savedNet[i]["weights"] =  numpy.array(newWeight)
+            savedNet[i]["output"] =  numpy.array(newOutput)
+            
+            self.currentLayers = i + 1
+
+        self.netMap = savedNet
+        
