@@ -15,12 +15,12 @@ print(inputs)
 print(targets)
 
 # hiddenNodes = int(inputSize*0.5)
-hiddenNodes = inputSize
+hiddenNodes = int((inputSize*2)*0.75)
 
-net = RNN(learningRate=0.3, hiddenSize=hiddenNodes)
+net = RNN(learningRate=0.4, hiddenSize=hiddenNodes)
 net.addLayer(inputLayer=True, inputSize=inputSize)
 net.addLayer(outputLayer=True, outputSize=inputSize)
-net.trainNetwork(inputs, targets, epochs=4)
+net.trainNetwork(inputs, targets, epochs=5)
 net.saveNeuralNet("rnn_net")
 
 lastOut = []
@@ -29,7 +29,7 @@ lastOut = []
 def makePrediction(wordInput):
     return net.predict(wordInput)
 
-for i in range(0,5):
+for i in range(0,15):
 
     # If there is a prev prediction, feed it into network
     # and set the last prediction

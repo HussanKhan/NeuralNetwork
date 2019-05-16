@@ -90,17 +90,6 @@ class RNN():
 
         return finalOutput
 
-    # Used to analyze network, returns feedback signal to see what network sees
-    def feedBackward(self, target):
-        # W.T * T - Feeds Target to weights in reverse order
-        target = self.reverseActivation(numpy.array(target, ndmin=2).T)
-        
-        for i in range(self.currentLayers - 1, 0, -1):
-            layerOutput = numpy.dot(self.netMap[i]["weights"].T, target)
-            print(layerOutput.shape)
-            target = layerOutput
-        return target
-
     # Trains network using input and targets
     def trainNetwork(self, inputData, targetData, epochs):
 
@@ -112,29 +101,6 @@ class RNN():
             for index, value in tqdm(enumerate(inputData)):
                 self.feedForward(value, lastOutput)
                 self.backPropagation(targetData[index], value)
-
-    # Tests network based on testInput and Target data
-    def testNetwork(self, inputData, targetData):
-        total_test = 0
-        correct = []
-        for index, value in enumerate(inputData):
-
-            output = self.feedForward(value)
-            
-            # correct index, argmax returns index of highest value
-            correctLabel = int(numpy.argmax(targetData[index]))
-
-            # Prediction from network, index of highest prob
-            prediction = numpy.argmax(output)
-
-            # if it matches, append correct list
-            if prediction == correctLabel:
-                correct.append(1)
-
-            total_test = total_test + 1
-        
-        print("Performance: {}".format(len(correct)/total_test))
-        print("Out of {} tests, {} predictions were correct".format(total_test, len(correct)))
 
     # Saves network as json
     def saveNeuralNet(self, name):
