@@ -1,6 +1,7 @@
 import numpy
 import matplotlib.pyplot as plt
-from NeuralOne import NeuralOne
+# from NeuralOne import NeuralOne
+from NTEST import NeuralOne
 
 # Loading training data
 data = open("mnist_train.csv", "r")
@@ -55,24 +56,27 @@ for d in testInfo:
     testData.append(scaled)
     testTargetData.append(targets)
 
-net = NeuralOne(learningRate=0.001, hiddenSize=200)
-net.loadNeuralNet("mnist_net")
-# net.addLayer(inputLayer=True, inputSize=784)
-# net.addLayer()
-# net.addLayer()
-# net.addLayer()
-# net.addLayer(outputLayer=True, outputSize=10)
-# net.trainNetwork(trainData, targetData, epochs=6)
-# net.testNetwork(testData, testTargetData)
-# net.saveNeuralNet("mnist_net")
+net = NeuralOne(learningRate=0.001, hiddenSize=100)
+# net.loadNeuralNet("mnist_net")
+net.addLayer(inputLayer=True, inputSize=784)
+net.addLayer()
+net.addLayer()
+net.addLayer(outputLayer=True, outputSize=10)
+net.trainNetwork(trainData, targetData, epochs=6)
+net.testNetwork(testData, testTargetData)
+net.saveNeuralNet("mnist_net")
 
 # Backwards feedback to see what network thinks
 while True:
     testTar = input("BackTest Target: ")
     if testTar != "q":
+        
         testTar = int(testTar)
-        print(numpy.argmax(testTargetData[testTar]))
-        pictureData = net.feedBackward(testTargetData[testTar])
+        
+        targets = numpy.zeros(10) + 0.01
+        targets[testTar] = 0.99
+
+        pictureData = net.feedBackward(targets)
         reShaped = numpy.asfarray(pictureData).reshape((28, 28)) # 782 = 28 * 28 - total entries
         plt.imshow(reShaped, cmap='Greys', interpolation='None')
         # View Data
