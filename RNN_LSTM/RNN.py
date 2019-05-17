@@ -6,11 +6,15 @@ import json
 
 class RNN():
     
-    def __init__(self, learningRate=0.001, hiddenSize=1):
+    def __init__(self, learningRate=0.001, hiddenSize=1, decayRate=0.2):
         self.learningRate = learningRate # Learning Rate
         self.currentLayers = 1
         self.hiddenSize = hiddenSize # Number of nodes in hidden layer
         self.netMap = {} # Holds weight mappings
+
+        # Decayed learning rate based on epoch
+        self.lrDecayed = lambda x: (1 / ((1 + 0.1) * x)) * self.learningRate
+
         # activation function
         self.activation = lambda x: numpy.tanh(x)
         self.reverseActivation = lambda x: scipy.special.logit(x)
@@ -39,13 +43,20 @@ class RNN():
         self.currentLayers = self.currentLayers + 1 # Increments layer
 
     # Feeds forward through network, returns output
-    def feedForward(self, inputData, prevOutput=False):
+    def feedForward(self, inputData, prevOutput=[]):
         
         # W * I - Inputs feed into Weights
         inputData = numpy.array(inputData, ndmin=2).T
+
+        # print(inputData)
+        # print(prevOutput)
         
-        if prevOutput:
+        if len(prevOutput):
             inputData = inputData + prevOutput
+
+        # print("\nTotal\n")
+        # print(inputData)
+        # print(prevOutput)
         
         for n in range(1, self.currentLayers):
             layerOutput = numpy.dot(self.netMap[n]["weights"], inputData)
@@ -95,11 +106,15 @@ class RNN():
 
         for i in range(1, epochs):
 
+            self.learningRate = self.lrDecayed(i)
+
+            print(self.learningRate)
+
             print("EPOCH ", i)
-            lastOutput = False
+            lastOutput = []
             
             for index, value in tqdm(enumerate(inputData)):
-                self.feedForward(value, lastOutput)
+                lastOutput = self.feedForward(value, lastOutput)
                 self.backPropagation(targetData[index], value)
 
     # Saves network as json
