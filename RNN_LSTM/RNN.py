@@ -13,7 +13,9 @@ class RNN():
         self.netMap = {} # Holds weight mappings
 
         # Decayed learning rate based on epoch
-        self.lrDecayed = lambda x: (1 / ((1 + 0.1) * x)) * self.learningRate
+        self.lrDecayed = lambda x: (1 / ((1 + decayRate) * x)) * self.learningRate
+
+        self.sigmoid = lambda x: 1/(1+numpy.exp(-x))
 
         # activation function
         self.activation = lambda x: numpy.tanh(x)
@@ -69,7 +71,8 @@ class RNN():
 
     # Returns output matrix from neural net
     def predict(self, inputData):
-        result = self.feedForward(inputData)
+        result = self.sigmoid(self.feedForward(inputData))
+        # print(result)
         return result
 
     # BackProp through network, updates weights
@@ -106,9 +109,9 @@ class RNN():
 
         for i in range(1, epochs):
 
-            self.learningRate = self.lrDecayed(i)
+            # self.learningRate = self.lrDecayed(i)
 
-            print(self.learningRate)
+            # print(self.learningRate)
 
             print("EPOCH ", i)
             lastOutput = []

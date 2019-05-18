@@ -77,7 +77,9 @@ class NeuralOne():
                 prevOutput = numpy.array(inputs, ndmin=2)
 
             # Update weights based on graient descent, chain rule of sigmoid
-            # Adding because error gives us sign, (See Perceptron Training by Udacity on Youtube)
+            # Derivative
+            # dE/dW = -2(t - 0) * O * (1 - O) * O.previous
+            # Move weights opposite of gradient
             self.netMap[l]["weights"] += ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
             
             # Spread error to weigths

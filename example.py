@@ -1,7 +1,7 @@
 import numpy
 import matplotlib.pyplot as plt
 # from NeuralOne import NeuralOne
-from NTEST import NeuralOne
+from NeuralOne import NeuralOne
 
 # Loading training data
 data = open("mnist_train.csv", "r")
@@ -56,13 +56,11 @@ for d in testInfo:
     testData.append(scaled)
     testTargetData.append(targets)
 
-net = NeuralOne(learningRate=0.001, hiddenSize=100)
+net = NeuralOne(learningRate=0.1, hiddenSize=200)
 # net.loadNeuralNet("mnist_net")
 net.addLayer(inputLayer=True, inputSize=784)
-net.addLayer()
-net.addLayer()
 net.addLayer(outputLayer=True, outputSize=10)
-net.trainNetwork(trainData, targetData, epochs=6)
+net.trainNetwork(trainData, targetData, epochs=4)
 net.testNetwork(testData, testTargetData)
 net.saveNeuralNet("mnist_net")
 
