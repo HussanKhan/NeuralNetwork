@@ -58,8 +58,6 @@ class NeuralOne():
 
     # BackProp through network, updates weights
     def backPropagation(self, targets, inputs):
-        
-        # changeWeight = -lr ( [Ek * Ok (1 - Ok) * Oj] )
 
         finalOutput = self.netMap[self.currentLayers - 1]["output"]
         targets = numpy.array(targets, ndmin=2).T
@@ -76,13 +74,15 @@ class NeuralOne():
             else:
                 prevOutput = numpy.array(inputs, ndmin=2)
 
-            # Update weights based on graient descent, chain rule of sigmoid
+            # Update weights based on gradient descent, chain rule of sigmoid
             # Derivative
             # dE/dW = -2(t - 0) * O * (1 - O) * O.previous
             # Move weights opposite of gradient
             self.netMap[l]["weights"] += ((self.learningRate) * numpy.dot((newError * (currentOutput * (1 - currentOutput))) , prevOutput)) 
             
             # Spread error to weigths
+            # Each layer has its own error, it gets carried back from output, based on strength of weights
+            # newError is the weight adjusted error for each layer
             newError = numpy.dot(self.netMap[l]["weights"].T, newError)
 
     # Used to analyze network, returns feedback signal to see what network sees
