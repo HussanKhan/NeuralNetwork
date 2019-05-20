@@ -56,11 +56,14 @@ for d in testInfo:
     testData.append(scaled)
     testTargetData.append(targets)
 
-net = NeuralOne(learningRate=0.1, hiddenSize=200)
+net = NeuralOne(learningRate=0.001, hiddenSize=200)
 # net.loadNeuralNet("mnist_net")
 net.addLayer(inputLayer=True, inputSize=784)
+net.addLayer()
+net.addLayer()
+net.addLayer()
 net.addLayer(outputLayer=True, outputSize=10)
-net.trainNetwork(trainData, targetData, epochs=4)
+net.trainNetwork(trainData, targetData, epochs=8)
 net.testNetwork(testData, testTargetData)
 net.saveNeuralNet("mnist_net")
 
