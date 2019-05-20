@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from tqdm import tqdm
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -45,12 +46,12 @@ hH = np.random.uniform(0, 1, (hiddenSize, hiddenSize))
 hO = np.random.uniform(0, 1, (outputSize, hiddenSize))
 
 # Initial Hidden is just zeros
-previousHiddenState = np.zeros((outputSize, hiddenSize))
+previousHiddenState = np.zeros((hiddenSize, outputSize))
 
 
 # How far to backprop
-backPropLimit = 10
-learningRate = 0.0001
+backPropLimit = 5
+learningRate = 0.001
 
 # Stops vanishing gradient
 def clipGrad(grad):
@@ -64,13 +65,11 @@ def clipGrad(grad):
 # Feed forward through network
 
 # for every output
-for epoch in range(25):
+for epoch in tqdm(range(25)):
     for o in range(outputSine.shape[0]):
 
         # stores all timesteps
         timeSteps = []
-        
-        print(o)
         
         # Current input and output set
         currentInput = inputSine[o]
@@ -81,57 +80,96 @@ for epoch in range(25):
         
             # Normal input [1, 2, 5, 6]
             # Send to RNN - [0, 0, 5, 6]
-            inputX = np.zeros(currentInput.shape)
+            inputX = np.zeros((inputSize, 1))
             inputX[index] = currentInput[index]
+
+            # inputX = np.array(inputX, ndmin=1)
+
+            # print("Input")
+            # print(inputX.shape)
             
             # Input to Hidden
+            # 100 x 50 * 50 * 1 = 100 x 1
             xU = np.dot(iH, inputX)
-            
-            # Hidden to Hidden
-            hW = np.dot(hH, previousHiddenState.T)
+
+            # print("Weights x Input")
+            # print(xU.shape)
     
+            # Hidden to Hidden
+            # 100 x 100 * 100 x 1 = 100 x 1
+            hW = np.dot(hH, previousHiddenState)
+
+            # print("Hidden State x PrevHidden State")
+            # print(hW.shape)
+
             # Current Hidden State
+            # 100 x 1 + 100 x 1 = 100 x 1
             currentHiddenState = sigmoid(( xU + hW ))
+
+            # print("CurrentHiddenState")
+            # print(currentHiddenState.shape)
     
             # Output from current Hidden State
+            # 1 x 100 * 100 x 1 = 1 x 1
             newOutput = np.dot(hO, currentHiddenState)
+            # print("Output")
+            # print(newOutput.shape)
     
             # Set previous hidden state
+            # 100 x 1
             previousHiddenState = currentHiddenState
     
             # Add time step for later backprop
-            timeSteps.append({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState, "xInput": inputX, "inputHidden": xU})
+            timeSteps.append({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState, "xInput": inputX, "inputHidden": xU, "currentHiddenOutput": hW})
             
             # print({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState})
+
     
+        # print(error.shape)
+        # print(hO.shape)
+        # print(hH.shape)
+        # print(iH.shape)
+    
+        d_hO = np.zeros((outputSize, hiddenSize))
+        d_hH = np.zeros((hiddenSize, hiddenSize))
+        d_iH = np.zeros((hiddenSize, inputSize))
+
         # Calculate error of last output
+        # 1x1 - 1x1 = 1x1
         error = (newOutput - target)
-    
-        print(error.shape)
-        print(hO.shape)
-        print(hH.shape)
-        print(iH.shape)
-    
-    
+
         # Go through times steps backwards
         currentTimeStep = inputSize-1
         for t in range(currentTimeStep, (currentTimeStep - backPropLimit), -1):
-        
-            gradient = np.dot((error * (newOutput * (1 - newOutput))) , timeSteps[t]['currentHiddenState'])
-    
-            hO = hO + (learningRate) * clipGrad(gradient)
+            
+            # 1 x 1 * 100 x 1 = 1 x 100
+            gradient = np.dot((error * (newOutput * (1 - newOutput))) , timeSteps[t]['currentHiddenState'].T)
+            d_hO = d_hO + ((learningRate) * clipGrad(gradient))
     
             # Spread error to next layer
+            # 1 x 100 * 1 x 1 = 100 x 1
             error = np.dot(hO.T, error) 
-            gradient = np.dot((error * (timeSteps[t]['currentHiddenState'] * (1 - timeSteps[t]['currentHiddenState']))) , timeSteps[t]["previousHiddenState"])
-            hH = hH + (learningRate) * clipGrad(gradient)
+
+            # 100 x 1 * 100 x 1 = 100 x 100
+            gradient = np.dot((error * (timeSteps[t]['currentHiddenState'] * (1 - timeSteps[t]['currentHiddenState']))) , timeSteps[t]['inputHidden'].T)
+            d_hH = d_hH + ((learningRate) * clipGrad(gradient))
     
             # Spread error to next layer
+            # 100 x 100 * 100 x 1 = 100 x 1
             error = np.dot(hH.T, error)
-            gradient = np.dot((error * (timeSteps[t]['inputHidden'] * (1 - timeSteps[t]['inputHidden']))) , iH)
-            iH = iH + (learningRate) * clipGrad(gradient)
-    
-            print(iH)
+
+            # 100 x 1 * 50 x 1 = 100 x 50
+            gradient = np.dot((error * (timeSteps[t]['inputHidden'] * (1 - timeSteps[t]['inputHidden']))) , timeSteps[t]['xInput'].T)
+            
+            d_iH = d_iH + ((learningRate) * clipGrad(gradient))
+            
+            # 100 x 1 * 100 x 1 =  1 x 1
+            error = np.dot(timeSteps[t]['previousHiddenState'].T, error)
+        
+        # Update weights
+        hO = hO + d_hO
+        hH = hH + d_hH
+        iH = iH + d_iH
 
 preds = []
 for i in range(outputSine.shape[0]):
@@ -156,12 +194,12 @@ for i in range(outputSine.shape[0]):
     
 preds = np.array(preds)
 
-print(preds)
+print(preds[0])
 
 preds = preds
 
-plt.plot(preds[:, 0, 0], 'g')
-plt.plot(outputSine[:], 'r')
+plt.plot(preds[:, 0, 0], 'b')
+plt.plot(outputSine[:], 'g')
 plt.show()
 
 
