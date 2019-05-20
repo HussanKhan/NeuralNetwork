@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import math
 from tqdm import tqdm
 
-def tanh(x):
-    return np.tanh(x)
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 sinWaveData = []
 # Fill sine data at position x
@@ -50,8 +50,8 @@ previousHiddenState = np.zeros((hiddenSize, outputSize))
 
 
 # How far to backprop
-backPropLimit = 5
-learningRate = 0.0001
+backPropLimit = 15
+learningRate = 0.001
 
 # Stops vanishing gradient
 def clipGrad(grad):
@@ -104,14 +104,14 @@ for epoch in tqdm(range(25)):
 
             # Current Hidden State
             # 100 x 1 + 100 x 1 = 100 x 1
-            currentHiddenState = tanh(( xU + hW ))
+            currentHiddenState = sigmoid(( xU + hW ))
 
             # print("CurrentHiddenState")
             # print(currentHiddenState.shape)
     
             # Output from current Hidden State
             # 1 x 100 * 100 x 1 = 1 x 1
-            newOutput = tanh(np.dot(hO, currentHiddenState))
+            newOutput = np.dot(hO, currentHiddenState)
             # print("Output")
             # print(newOutput.shape)
     
@@ -143,25 +143,25 @@ for epoch in tqdm(range(25)):
         for t in range(currentTimeStep, (currentTimeStep - backPropLimit), -1):
             
             # 1 x 1 * 100 x 1 = 1 x 100
-            gradient = np.dot((error * ((1 - newOutput**2))) , timeSteps[t]['currentHiddenState'].T)
-            d_hO = clipGrad((d_hO) + (gradient))
+            gradient = np.dot((error * (newOutput * (1 - newOutput))) , timeSteps[t]['currentHiddenState'].T)
+            d_hO = d_hO - (clipGrad(gradient))
     
             # Spread error to next layer
             # 1 x 100 * 1 x 1 = 100 x 1
             error = np.dot(hO.T, error) 
 
             # 100 x 1 * 100 x 1 = 100 x 100
-            gradient = np.dot((error * ((1 - timeSteps[t]['currentHiddenState']**2))) , timeSteps[t]['inputHidden'].T)
-            d_hH = clipGrad((d_hH) + (gradient))
+            gradient = np.dot((error * (timeSteps[t]['currentHiddenState'] * (1 - timeSteps[t]['currentHiddenState']))) , timeSteps[t]['inputHidden'].T)
+            d_hH = d_hH - (clipGrad(gradient))
     
             # Spread error to next layer
             # 100 x 100 * 100 x 1 = 100 x 1
             error = np.dot(hH.T, error)
 
             # 100 x 1 * 50 x 1 = 100 x 50
-            gradient = np.dot((error * ((1 - timeSteps[t]['inputHidden']**2))) , timeSteps[t]['xInput'].T)
+            gradient = np.dot((error * (timeSteps[t]['inputHidden'] * (1 - timeSteps[t]['inputHidden']))) , timeSteps[t]['xInput'].T)
             
-            d_iH = clipGrad((d_iH) + (gradient))
+            d_iH = d_iH - (clipGrad(gradient))
             
             # 100 x 1 * 100 x 1 =  1 x 1
             error = np.dot(timeSteps[t]['previousHiddenState'].T, error)
@@ -183,8 +183,11 @@ for i in range(outputSine.shape[0]):
 
         xH = np.dot(iH, currentInput)
         wH = np.dot(hH, prev_s)
-        s = tanh(xH + hH)
-        mulv = tanh(np.dot(hO, s))
+
+        s = sigmoid(xH + hH)
+
+        mulv = np.dot(hO, s)
+        
         prev_s = s
 
     preds.append(mulv)
