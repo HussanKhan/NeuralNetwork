@@ -77,6 +77,8 @@ for epoch in tqdm(range(25)):
         # Current input and output set
         currentInput = inputSine[o]
         target = outputSine[o]
+        # print("TEST")
+        # print(target)
         
         # Give RNN one input at a time
         for index in range(inputSize):
@@ -116,7 +118,7 @@ for epoch in tqdm(range(25)):
     
             # Output from current Hidden State
             # 1 x 100 * 100 x 1 = 1 x 1
-            newOutput = tanh(np.dot(hO, currentHiddenState))
+            newOutput = np.dot(hO, currentHiddenState)
             # print("Output")
             # print(newOutput.shape)
     
@@ -143,37 +145,41 @@ for epoch in tqdm(range(25)):
         # 1x1 - 1x1 = 1x1
         # print("NEW ERROR")
         error = (target - newOutput)
-        # print(error)
+        print("\r" + str(error), end="", flush=True)
+        # print("out")
         # print(newOutput)
+        # print("tar")
+        # print(target)
         # Go through times steps backwards
         currentTimeStep = inputSize-1
         for t in range(currentTimeStep, (currentTimeStep - backPropLimit), -1):
+            # print(error)
             
             # 1 x 1 * 100 x 1 = 1 x 100
-            gradient = np.dot((error * ((1 - newOutput**2))) , timeSteps[t]['currentHiddenState'].T)
+            gradient = tanh(np.dot((error * ((1 - newOutput**2))) , timeSteps[t]['currentHiddenState'].T))
             # print("GRADIENT hO") 
             # print(gradient)
             # print(gradient.max())
             # print(error * (1 - newOutput**2))
             # print(timeSteps[t]['currentHiddenState'])
-            d_hO = d_hO + clipGrad(gradient)
+            d_hO = tanh(d_hO + clipGrad(gradient))
     
             # Spread error to next layer
             # 1 x 100 * 1 x 1 = 100 x 1
-            error = np.dot(hO.T, error)
+            error = tanh(np.dot(hO.T, error))
             
             # print("ERROR")
             # print(error)
 
             # 100 x 1 * 100 x 1 = 100 x 100
-            gradient = np.dot((error * ((1 - timeSteps[t]['currentHiddenState']**2))) , tanh(timeSteps[t]['previousHiddenState'] + timeSteps[t]['inputHidden']).T)
+            gradient = tanh(np.dot((error * ((1 - timeSteps[t]['currentHiddenState']**2))) , (timeSteps[t]['previousHiddenState'] + timeSteps[t]['inputHidden']).T))
             # print("GRADIENT hH")
             # print(gradient)
-            d_hH = d_hH + clipGrad(gradient)
+            d_hH = tanh(d_hH + clipGrad(gradient))
     
             # Spread error to next layer
             # 100 x 100 * 100 x 1 = 100 x 1
-            error = np.dot(hH.T, error)
+            error = tanh(np.dot(hH.T, error))
             
             # print("HH")
             # print(hH)
@@ -181,23 +187,26 @@ for epoch in tqdm(range(25)):
             # print(error)
 
             # 100 x 1 * 50 x 1 = 100 x 50
-            gradient = np.dot((error * ((1 - timeSteps[t]['inputHidden']**2))) , timeSteps[t]['xInput'].T)
+            gradient = tanh(np.dot((error * ((1 - timeSteps[t]['inputHidden']**2))) , timeSteps[t]['xInput'].T))
             # print("GRADIENT iH")
             # print(gradient)
             
-            d_iH = d_iH + clipGrad(gradient)
+            d_iH = tanh(d_iH + clipGrad(gradient))
             
             # 100 x 1 * 100 x 1 =  1 x 1
-            error = np.dot(timeSteps[t]['previousHiddenState'].T, error)
+            error = tanh(np.dot(timeSteps[t]['previousHiddenState'].T, error))
             
             # print("ERROR") 
             # print(error)
             # exit()
         
         # Update weights
-        hO = hO + (learningRate * d_hO)
-        hH = hH + (learningRate * d_hH)
-        iH = iH + (learningRate * d_iH)
+        hO = tanh(hO + (learningRate * d_hO))
+        hH = tanh(hH + (learningRate * d_hH))
+        iH = tanh(iH + (learningRate * d_iH))
+        # print(d_hO)
+        # print(hH)
+        # print(iH)
 
 preds = []
 for i in range(outputSine.shape[0]):
