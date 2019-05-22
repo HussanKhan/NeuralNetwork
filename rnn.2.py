@@ -62,7 +62,7 @@ def clipGrad(grad):
 print("\n")
 for epoch in range(25):
 
-    #learningRate = lrDecayed(epoch+1)
+    # learningRate = lrDecayed(epoch+1)
 
     # Go over output one at a time
     for o in range(Y.shape[0]):
@@ -117,31 +117,26 @@ for epoch in range(25):
 
             # Change is output weights
             dV_t = np.dot(error, timeSteps[t]["currentHiddenState"].T)
-
             # Spread error to next layer
             nextLayerError = np.dot(hO.T, error)
             
-            ds = nextLayerError
-
-            dadd = lastHiddenOutput * (1 - lastHiddenOutput) * ds
+            hiddenError = nextLayerError
+            dHiddenState = lastHiddenOutput * (1 - lastHiddenOutput) * hiddenError
             
-            dWeights = dadd * np.ones_like(lastWeight)
-
+            dWeights = dHiddenState * np.ones_like(lastWeight)
             # Spread change to Hidden Weights
             dPrevState = np.dot(hH.T, dWeights)
 
 
             for i in range(t-1, max(-1, t-backPropLimit-1), -1):
                 
-                ds = nextLayerError + dPrevState
-
-                dHiddenState = lastHiddenOutput * (1 - lastHiddenOutput) * ds
+                hiddenError = nextLayerError + dPrevState
+                dHiddenState = lastHiddenOutput * (1 - lastHiddenOutput) * hiddenError
 
                 dWeights = dHiddenState * np.ones_like(lastWeight)
                 dInputLayer = dHiddenState * np.ones_like(lastInput)
 
                 dW_i = np.dot(hH, timeSteps[t]["previousHiddenState"])
-                
                 dPrevState = np.dot(hH.T, dWeights)
 
                 new_input = np.zeros(currentInput.shape)

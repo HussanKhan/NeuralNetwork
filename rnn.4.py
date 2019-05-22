@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import math
 from tqdm import tqdm
 
-def tanh(x):
-    return np.tanh(x)
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 sinWaveData = []
 # Fill sine data at position x
-for s in range(200):
+for s in np.arange(200):
     sinWaveData.append(math.sin(s))
 
 # make sinWaveData into numpy array
@@ -36,14 +36,14 @@ hiddenSize = 100
 outputSize = 1
 
 # Input to Hidden
-iH = np.random.rand(hiddenSize, inputSize) - 0.5 
+iH = np.random.uniform(0, 1, (hiddenSize, inputSize)) 
 # Previous Hiden State to Current Hidden State
-hH = np.random.rand(hiddenSize, hiddenSize) - 0.5
+hH = np.random.uniform(0, 1, (hiddenSize, hiddenSize))
 # Hidden State to output
-hO = np.random.rand(outputSize, hiddenSize) - 0.5
+hO = np.random.uniform(0, 1, (outputSize, hiddenSize))
 
 # How far to backprop
-backPropLimit = 7
+backPropLimit = 5
 lrDecayed = lambda x: (1 / ((1 + 0.1) * x)) * 0.001
 learningRate = 0.0001
 
@@ -62,7 +62,7 @@ def clipGrad(grad):
 print("\n")
 for epoch in range(25):
 
-    #learningRate = lrDecayed(epoch+1)
+    # learningRate = lrDecayed(epoch+1)
 
     # Go over output one at a time
     for o in range(Y.shape[0]):
@@ -100,7 +100,7 @@ for epoch in range(25):
             lastWeight = hW
 
             lastHiddenOutput = ( xU + hW )
-            currentHiddenState = tanh(lastHiddenOutput)
+            currentHiddenState = sigmoid(lastHiddenOutput)
             newOutput = (np.dot(hO, currentHiddenState))
 
             timeSteps.append({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState, "xInput": inputX, "inputHidden": xU, "currentHiddenOutput": hW, "output": newOutput})
@@ -115,45 +115,30 @@ for epoch in range(25):
         # backward pass
         for t in range(inputSize):
 
-            # Gradient/Derivative of output layer
-            # dE/dV (t - o) * W
-            # Output layer has no function added, so simple input to error
             dV_t = np.dot(error, timeSteps[t]["currentHiddenState"].T)
-
-            # Spread error to layer before output
-            nextLayerError = np.dot(hO.T, error)
+            dHiddenError = np.dot(hO.T, error)
             
-            ds = nextLayerError
-
-            # Gradient of output from Hidden State, for tanh times error from output
-            # error * tanh
-            dadd = ds * (1 - lastHiddenOutput**2)
+            dcurrentHidden = lastHiddenOutput * (1 - lastHiddenOutput) * dHiddenError
             
+            dlastWeight = dcurrentHidden * np.ones_like(lastWeight)
 
-            dWeights = dadd * np.ones_like(lastWeight)
-
-            # Spread change to Hidden Weights
-            dPrevState = np.dot(hH.T, dWeights)
+            dPrevState = np.dot(hH.T, dlastWeight)
 
 
             for i in range(t-1, max(-1, t-backPropLimit-1), -1):
-                
-                ds = nextLayerError + dPrevState
+                dHiddenError = dHiddenError + dPrevState
+                dcurrentHidden = lastHiddenOutput * (1 - lastHiddenOutput) * dHiddenError
 
-                dHiddenState = (1 - lastHiddenOutput**2) * ds
-
-                dWeights = dHiddenState * np.ones_like(lastWeight)
-                dInputLayer = dHiddenState * np.ones_like(lastInput)
+                dlastWeight = dcurrentHidden * np.ones_like(lastWeight)
+                dlastInput = dcurrentHidden * np.ones_like(lastInput)
 
                 dW_i = np.dot(hH, timeSteps[t]["previousHiddenState"])
-                
-                dPrevState = np.dot(hH.T, dWeights)
+                dPrevState = np.dot(hH.T, dlastWeight)
 
                 new_input = np.zeros(currentInput.shape)
                 new_input[t] = currentInput[t]
-
                 dU_i = np.dot(iH, new_input)
-                dx = np.dot(iH.T, dInputLayer)
+                dx = np.dot(iH.T, dlastInput)
 
                 dU_t += dU_i
                 dW_t += dW_i
@@ -180,7 +165,7 @@ for i in range(Y.shape[0]):
         mulu = np.dot(iH, x)
         mulw = np.dot(hH, prev_s)
         add = mulw + mulu
-        s = tanh(add)
+        s = sigmoid(add)
         mulv = np.dot(hO, s)
         prev_s = s
 
