@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from tqdm import tqdm
 
 sin_wave = np.array([math.sin(x) for x in np.arange(200)])
 
@@ -43,56 +44,17 @@ bptt_truncate = 5
 min_clip_value = -10
 max_clip_value = 10
 
+np.random.seed(4) # 4 9 15
 U = np.random.uniform(0, 1, (hidden_dim, inputSize))
+np.random.seed(7) # 7 8 14
 W = np.random.uniform(0, 1, (hidden_dim, hidden_dim))
+np.random.seed(10) # 10 7 13
 V = np.random.uniform(0, 1, (output_dim, hidden_dim))
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-for epoch in range(nepoch):
-    # check loss on train
-    loss = 0.0
-    
-    # do a forward pass to get prediction
-    for i in range(Y.shape[0]):
-        x, y = X[i], Y[i]                    # get input, output values of each record
-        previousState = np.zeros((hidden_dim, 1))   # here, prev-s is the value of the previous activation of hidden layer; which is initialized as all zeroes
-        for t in range(inputSize):
-            new_input = np.zeros(x.shape)    # we then do a forward pass for every timestep in the sequence
-            new_input[t] = x[t]              # for this, we define a single input for that timestep
-            inputU = np.dot(U, new_input)
-            hiddenW = np.dot(W, previousState)
-            inputPlusHidden = hiddenW + inputU
-            s = sigmoid(inputPlusHidden)
-            outputV = np.dot(V, s)
-            previousState = s
-
-    # calculate error 
-        loss_per_record = (y - outputV)**2 / 2
-        loss += loss_per_record
-    loss = loss / float(y.shape[0])
-
-    # check loss on val
-    val_loss = 0.0
-    for i in range(Y_val.shape[0]):
-        x, y = X_val[i], Y_val[i]
-        previousState = np.zeros((hidden_dim, 1))
-        for t in range(inputSize):
-            new_input = np.zeros(x.shape)
-            new_input[t] = x[t]
-            inputU = np.dot(U, new_input)
-            hiddenW = np.dot(W, previousState)
-            inputPlusHidden = hiddenW + inputU
-            s = sigmoid(inputPlusHidden)
-            outputV = np.dot(V, s)
-            previousState = s
-
-        loss_per_record = (y - outputV)**2 / 2
-        val_loss += loss_per_record
-    val_loss = val_loss / float(y.shape[0])
-
-    print('Epoch: ', epoch + 1, ', Loss: ', loss, ', Val Loss: ', val_loss)
+for epoch in tqdm(range(nepoch)):
 
     # train model
     for i in range(Y.shape[0]):
