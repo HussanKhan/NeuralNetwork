@@ -50,9 +50,9 @@ previousHiddenState = np.zeros((hiddenSize, outputSize))
 
 
 # How far to backprop
-backPropLimit = 5
-lrDecayed = lambda x: (1 / ((1 + 0.2) * x)) * 0.001
-learningRate = 0
+backPropLimit = 15
+# lrDecayed = lambda x: (1 / ((1 + 0.1) * x)) * 0.01
+learningRate = 0.0001
 
 # Stops vanishing gradient
 def clipGrad(grad):
@@ -66,10 +66,18 @@ def clipGrad(grad):
 # Feed forward through network
 
 # for every output
-for epoch in tqdm(range(25)):
-    learningRate = lrDecayed(epoch+1)
-    # print(learningRate)
+print("\n")
+for epoch in range(25):
+
+    # learningRate = lrDecayed(epoch+1)
+    
+    # Go over output one at a time
     for o in range(outputSine.shape[0]):
+
+        # sum of updates
+        d_hO = np.zeros((outputSize, hiddenSize))
+        d_hH = np.zeros((hiddenSize, hiddenSize))
+        d_iH = np.zeros((hiddenSize, inputSize))
 
         # stores all timesteps
         timeSteps = []
@@ -77,8 +85,6 @@ for epoch in tqdm(range(25)):
         # Current input and output set
         currentInput = inputSine[o]
         target = outputSine[o]
-        # print("TEST")
-        # print(target)
         
         # Give RNN one input at a time
         for index in range(inputSize):
@@ -87,128 +93,86 @@ for epoch in tqdm(range(25)):
             # Send to RNN - [0, 0, 5, 6]
             inputX = np.zeros((inputSize, 1))
             inputX[index] = currentInput[index]
-
-            # inputX = np.array(inputX, ndmin=1)
-
-            # print("Input")
-            # print(inputX.shape)
             
             # Input to Hidden
             # 100 x 50 * 50 * 1 = 100 x 1
-            xU = tanh(np.dot(iH, inputX))
-
-            # print("Weights x Input")
-            # print(xU.shape)
+            xU = (np.dot(iH, inputX))
     
             # Hidden to Hidden
             # 100 x 100 * 100 x 1 = 100 x 1
-            hW = tanh(np.dot(hH, previousHiddenState))
-
-            # print("Hidden State x PrevHidden State")
-            # print(hW.shape)
+            hW = (np.dot(hH, previousHiddenState))
 
             # Current Hidden State
             # 100 x 1 + 100 x 1 = 100 x 1
             currentHiddenState = tanh(( xU + hW ))
 
-            # print(currentHiddenState)
-
-            # print("CurrentHiddenState")
-            # print(currentHiddenState.shape)
-    
             # Output from current Hidden State
             # 1 x 100 * 100 x 1 = 1 x 1
-            newOutput = np.dot(hO, currentHiddenState)
-            # print("Output")
-            # print(newOutput.shape)
+            newOutput = (np.dot(hO, currentHiddenState))
     
             # Set previous hidden state
             # 100 x 1
             previousHiddenState = currentHiddenState
     
             # Add time step for later backprop
-            timeSteps.append({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState, "xInput": inputX, "inputHidden": xU, "currentHiddenOutput": hW})
-            
-            # print({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState})
+            timeSteps.append({ 'currentHiddenState': currentHiddenState, 'previousHiddenState': previousHiddenState, "xInput": inputX, "inputHidden": xU, "currentHiddenOutput": hW, "output": newOutput})
 
-    
-        # print(error.shape)
-        # print(hO.shape)
-        # print(hH.shape)
-        # print(iH.shape)
-    
-        d_hO = np.zeros((outputSize, hiddenSize))
-        d_hH = np.zeros((hiddenSize, hiddenSize))
-        d_iH = np.zeros((hiddenSize, inputSize))
-
-        # Calculate error of last output
-        # 1x1 - 1x1 = 1x1
-        # print("NEW ERROR")
-        error = (target - newOutput)
-        print("\r" + str(error), end="", flush=True)
-        # print("out")
-        # print(newOutput)
-        # print("tar")
-        # print(target)
         # Go through times steps backwards
         currentTimeStep = inputSize-1
-        for t in range(currentTimeStep, (currentTimeStep - backPropLimit), -1):
-            # print(error)
-            
+
+        for step in range(inputSize):
+
+            error = (target - timeSteps[currentTimeStep-step]["output"])
+
             # 1 x 1 * 100 x 1 = 1 x 100
-            gradient = tanh(np.dot((error * ((1 - newOutput**2))) , timeSteps[t]['currentHiddenState'].T))
-            # print("GRADIENT hO") 
-            # print(gradient)
-            # print(gradient.max())
-            # print(error * (1 - newOutput**2))
-            # print(timeSteps[t]['currentHiddenState'])
-            d_hO = tanh(d_hO + clipGrad(gradient))
-    
-            # Spread error to next layer
-            # 1 x 100 * 1 x 1 = 100 x 1
-            error = tanh(np.dot(hO.T, error))
+            # gradient = (learningRate * gradient)
+            gradientO = np.dot((error * (1 - timeSteps[currentTimeStep-step]["output"]**2)), timeSteps[currentTimeStep-step]['previousHiddenState'].T)
             
-            # print("ERROR")
-            # print(error)
+            print("\r" + str(gradientO), end="", flush=True)
 
-            # 100 x 1 * 100 x 1 = 100 x 100
-            gradient = tanh(np.dot((error * ((1 - timeSteps[t]['currentHiddenState']**2))) , (timeSteps[t]['previousHiddenState'] + timeSteps[t]['inputHidden']).T))
-            # print("GRADIENT hH")
-            # print(gradient)
-            d_hH = tanh(d_hH + clipGrad(gradient))
-    
-            # Spread error to next layer
-            # 100 x 100 * 100 x 1 = 100 x 1
-            error = tanh(np.dot(hH.T, error))
-            
-            # print("HH")
-            # print(hH)
-            # print("ERROR") 
-            # print(error)
+            for t in range(currentTimeStep-step, (step - backPropLimit), -1):
+                # Spread error to next layer
+                # 1 x 100 * 1 x 1 = 100 x 1
+                # error = np.dot(hO.T, error)
+                # # error = (error) * learningRate
 
-            # 100 x 1 * 50 x 1 = 100 x 50
-            gradient = tanh(np.dot((error * ((1 - timeSteps[t]['inputHidden']**2))) , timeSteps[t]['xInput'].T))
-            # print("GRADIENT iH")
-            # print(gradient)
-            
-            d_iH = tanh(d_iH + clipGrad(gradient))
-            
-            # 100 x 1 * 100 x 1 =  1 x 1
-            error = tanh(np.dot(timeSteps[t]['previousHiddenState'].T, error))
-            
-            # print("ERROR") 
-            # print(error)
-            # exit()
-        
+                # # 100 x 1 * 100 x 1 = 100 x 100
+                # gradientH = np.dot((error * ((1 - timeSteps[t]['currentHiddenState']**2))) , (timeSteps[t]['previousHiddenState'] + timeSteps[t]['inputHidden']).T)
+                # gradient = (learningRate * gradient)
+
+                # 1 x 100 * 1 x 100 =  100 x 100
+                gradientH = np.dot(hO.T, gradientO)
+                
+                # Spread error to next layer
+                # 100 x 100 * 100 x 1 = 100 x 1
+                # error = np.dot(hH.T, error)
+                # error = (error) * learningRate
+
+                # 100 x 1 * 50 x 1 = 100 x 50
+                # gradientI = np.dot((error * ((1 - timeSteps[t]['inputHidden']**2))) , timeSteps[t]['xInput'].T)
+
+                # 100 x 100 * 100 * 100
+                gradientI = np.dot(hH.T, gradientH)
+                # gradientI = np.dot(hH.T, gradientH)
+                # gradient = (learningRate * gradient)
+
+                # 100 x 1 * 100 x 1 =  1 x 1
+                # error = np.dot(timeSteps[t]['previousHiddenState'].T, error)
+                # error = (error) * learningRate
+
+            d_hO = d_hO + learningRate * (clipGrad(gradientO))
+            d_hH = d_hH + learningRate * (clipGrad(gradientH))
+            # d_iH = d_iH + learningRate * (clipGrad(gradientI))
+
         # Update weights
-        hO = tanh(hO + (learningRate * d_hO))
-        hH = tanh(hH + (learningRate * d_hH))
-        iH = tanh(iH + (learningRate * d_iH))
-        # print(d_hO)
-        # print(hH)
-        # print(iH)
+        hO = hO + (learningRate *d_hO)
+        hH = hH + (learningRate *d_hH)
+        iH = iH + (learningRate *d_iH)
 
 preds = []
+print(hO)
+print(hH)
+print(iH)
 for i in range(outputSine.shape[0]):
     currentInput = inputSine[i]
     target = outputSine[i]
@@ -218,10 +182,10 @@ for i in range(outputSine.shape[0]):
     # Forward pass
     for t in range(inputSize):
 
-        xH = tanh(np.dot(iH, currentInput))
-        wH = tanh(np.dot(hH, prev_s))
+        xH = (np.dot(iH, currentInput))
+        wH = (np.dot(hH, prev_s))
         s = tanh(xH + hH)
-        mulv = tanh(np.dot(hO, s))
+        mulv = np.dot(hO, s)
         prev_s = s
 
     preds.append(mulv)
