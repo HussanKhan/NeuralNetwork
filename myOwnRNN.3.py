@@ -26,7 +26,7 @@ Y = np.expand_dims(Y, axis=1)
 learning_rate = 0.0001
 nepoch = 25               
 inputSize = 50                   # length of sequence
-hidden_dim = 100      
+hidden_dim = 200      
 output_dim = 1
 
 bptt_truncate = 5
@@ -39,11 +39,11 @@ def clipGrad(grad):
         grad[grad.min() < -10] =  -10
     return 0
 
-#np.random.seed(4) # 4 9 15
+np.random.seed(4) # 4 9 15
 U = np.random.uniform(0, 1, (hidden_dim, inputSize))
-#np.random.seed(7) # 7 8 14
+np.random.seed(7) # 7 8 14
 W = np.random.uniform(0, 1, (hidden_dim, hidden_dim))
-#np.random.seed(10) # 10 7 13
+np.random.seed(10) # 10 7 13
 V = np.random.uniform(0, 1, (output_dim, hidden_dim))
 
 def sigmoid(x):
@@ -82,7 +82,7 @@ for epoch in tqdm(range(nepoch)):
 
         # derivative of pred
         # error = (outputV - y)
-        error = (outputV - y) 
+        error = -(y - outputV) # left side of derivative
         
         # backward pass
         for t in range((inputSize-1), -1,-1):
@@ -91,12 +91,12 @@ for epoch in tqdm(range(nepoch)):
             newInput[t] = x[t]
 
             # Add up gradients of output layer and input layer per output
-            dV += np.dot(error, (1 - timeState[t]['currentState']**2).T)
+            dV += np.dot(error, timeState[t]['currentState'].T)
             dU += np.dot(U, newInput)
             
             # Add Up gradient of previous 5 hidden states
             for i in range(t, max(-1, t-bptt_truncate), -1):
-                dW += np.dot(W, (1 - timeState[i]['currentState']**2))
+                dW += np.dot(W, timeState[i]['currentState'])
 
             # Clips very low or very large weight changes
             clipGrad(dV)
