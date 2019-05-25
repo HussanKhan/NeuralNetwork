@@ -60,10 +60,12 @@ def sample(h, seed_ix, n):
   for t in xrange(n):
     h = np.tanh(np.dot(inputLayer, x) + np.dot(hiddenHidden, h) + bh)
     y = np.dot(hiddenOutput, h) + by
-    print(y)
+
     p = np.exp(y) / np.sum(np.exp(y))
     
     ix = np.random.choice(range(vocab_size), p=p.ravel())
+    print(p)
+    print(ix)
     x = np.zeros((vocab_size, 1))
     x[ix] = 1
     ixes.append(ix)

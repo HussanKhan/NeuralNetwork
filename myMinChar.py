@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 ############# Load in data #############
 sampleData = open("input.txt", "r").read()
@@ -27,8 +28,8 @@ print("Data has {} characters, {} unique.".format(dataSize, vocabSize))
 
 # Hyperparamaters - network shape
 hiddenSize = 100
-seqLength = 25 # How many times steps for each input
-learningRate = 0.01
+seqLength = 35 # How many times steps for each input
+learningRate = 0.001
 
 # Model parameters - RNN shape
 inputLayer = np.random.rand(hiddenSize, vocabSize)*0.01
@@ -37,6 +38,13 @@ hiddenOutput = np.random.rand(vocabSize, hiddenSize)*0.01
 
 biasHidden = np.zeros((hiddenSize, 1)) # hidden bias
 biasOutput = np.zeros((vocabSize, 1)) # output bias
+
+# Hold cumlative changes for layer learning rate change
+minputLayer  = np.zeros_like(inputLayer)
+mhiddenHidden = np.zeros_like(hiddenHidden)
+mhiddenOutput = np.zeros_like(hiddenOutput)
+mbiasHidden = np.zeros_like(biasHidden)
+mbiasOutput = np.zeros_like(biasOutput)
 
 ############## Training ##############
 
@@ -94,8 +102,6 @@ def train(inputs, targets, prevHiddenStates):
 
         # Creates copy to do math on output
         outputError = np.copy(allProbabilties[b])
-
-        print(outputError)
         
         # Calculates error at that target position
         # error
@@ -135,7 +141,7 @@ def train(inputs, targets, prevHiddenStates):
         deltaPrevHiddenBias = np.dot(hiddenHidden.T, deltaHiddenRaw)
 
     return {
-        "loss": totalLoss
+        "loss": totalLoss,
         "deltaHiddenOutput": deltaHiddenOutput,
         "deltaHiddenHidden": deltaHiddenHidden,
         "deltaInputLayer": deltaInputLayer,
@@ -144,24 +150,46 @@ def train(inputs, targets, prevHiddenStates):
     }
 
 ############## Predict ##############
-def predict(hiddenState, seed, n):
+def predict(seed, n):
+
+    # Holds all hidden states for this prediciton
+    allHiddenStates = {-1: np.zeros((hiddenSize, 1))}
     
     # Create first input
     xInput = np.zeros((vocabSize, 1))
-    x[seed] = 1
+    xInput[seed] = 1
 
     # Stores all predicited chars
     predictedChars = []
 
     # Normal feed forward
     for i in range(n):
-        uX = np.dot(inputLayer, xInput)
-        hH = np.dot(hiddenHidden, hiddenState) + biasHidden
-        currentHidden = np.tanh(hH + uX)
-        output = np.dot(hiddenOutput, currentHidden)
         
+        uX = np.dot(inputLayer, xInput)
+        hH = np.dot(hiddenHidden, allHiddenStates[i-1]) + biasHidden
+        
+        allHiddenStates[i] = np.tanh(hH + uX)
+        
+        output = np.dot(hiddenOutput, allHiddenStates[i]) + biasOutput
+        
+        # Softmax output
+        output = np.exp(output) / np.sum(np.exp(output))
+        
+        # Returns index of highest value
+        # bestGuess = np.argmax(output)
+        bestGuess = random.randint(0,seqLength)
+        predictedChars.append(bestGuess)
+        
+        # Makes best guess into new input
+        xInput = np.zeros((vocabSize, 1))
+        xInput[bestGuess] = 1
 
+    # Plain next
+    plainText = []
+    for index in predictedChars:
+        plainText.append(indexToChar[index])
 
+    return "".join(plainText)
 
 
 inputPosition = 0
@@ -195,16 +223,22 @@ while True:
     modelRes = train(inputs, targets, tempMemory)
 
     # Adjust weights
-    inputLayer += -learningRate * modelRes["deltaInputLayer"]
-    hiddenHidden += -learningRate * modelRes["deltaHiddenHidden"]
-    hiddenOutput += -learningRate * modelRes["deltaHiddenOutput"]
-    biasHidden += -learningRate * modelRes["deltaBiasHidden"]
-    biasOutput += -learningRate * modelRes["deltaBiasOutput"]
+    weigthArr = [inputLayer, hiddenHidden, hiddenOutput, biasOutput, biasHidden]
+    deltaArr = [modelRes["deltaInputLayer"], modelRes["deltaHiddenHidden"], modelRes["deltaHiddenOutput"], modelRes["deltaBiasOutput"], modelRes["deltaBiasHidden"]]
+    deltaMem = [minputLayer, mhiddenHidden, mhiddenOutput, mbiasOutput, mbiasHidden]
+
+    for weight, deltaWeight, deltaMem in zip(weigthArr, deltaArr, deltaMem):
+        
+        deltaMem += deltaWeight**2
+        weight += -learningRate * deltaWeight / np.sqrt(deltaMem + 1e-8) # slowly update weights based on past changes
+
+    # Make prediction, check status
+    if currentIteration % 100 == 0:
+        pred = predict(0, 200)
+        print(pred)
+        print("Loss: {}".format(modelRes["loss"]))
 
     # Move up data pointer and iteration
     inputPosition += seqLength
     currentIteration += 1
-
-    break
-
 
