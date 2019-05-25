@@ -143,6 +143,25 @@ def train(inputs, targets, prevHiddenStates):
         "deltaBiasHidden": deltaBiasHidden
     }
 
+############## Predict ##############
+def predict(hiddenState, seed, n):
+    
+    # Create first input
+    xInput = np.zeros((vocabSize, 1))
+    x[seed] = 1
+
+    # Stores all predicited chars
+    predictedChars = []
+
+    # Normal feed forward
+    for i in range(n):
+        uX = np.dot(inputLayer, xInput)
+        hH = np.dot(hiddenHidden, hiddenState) + biasHidden
+        currentHidden = np.tanh(hH + uX)
+        output = np.dot(hiddenOutput, currentHidden)
+        
+
+
 
 
 inputPosition = 0
@@ -172,15 +191,15 @@ while True:
         newTarget = charToIndex[char]
         targets.append(newTarget)
 
-    print(inputs)
-    print(targets)
-
     # feed data into model
     modelRes = train(inputs, targets, tempMemory)
 
     # Adjust weights
-    inputLayer += modelRes["deltaInputLayer"]
-    hiddenHidden += modelRes["deltaHiddenHidden"]
+    inputLayer += -learningRate * modelRes["deltaInputLayer"]
+    hiddenHidden += -learningRate * modelRes["deltaHiddenHidden"]
+    hiddenOutput += -learningRate * modelRes["deltaHiddenOutput"]
+    biasHidden += -learningRate * modelRes["deltaBiasHidden"]
+    biasOutput += -learningRate * modelRes["deltaBiasOutput"]
 
     # Move up data pointer and iteration
     inputPosition += seqLength
