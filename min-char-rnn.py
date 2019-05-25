@@ -29,13 +29,17 @@ def lossFun(inputs, targets, hprev):
   dhnext = np.zeros_like(hs[0])
   
   for t in reversed(xrange(len(inputs))):
+
     dy = np.copy(ps[t])
     dy[targets[t]] -= 1 # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
+
     dhiddenOutput += np.dot(dy, hs[t].T)
     dby += dy
+    
     dh = np.dot(hiddenOutput.T, dy) + dhnext # backprop into h
     dhraw = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
     dbh += dhraw
+    
     dinputLayer += np.dot(dhraw, xs[t].T)
     dhiddenHidden += np.dot(dhraw, hs[t-1].T)
     dhnext = np.dot(hiddenHidden.T, dhraw)
@@ -74,8 +78,8 @@ char_to_ix = { ch:i for i,ch in enumerate(chars) }
 ix_to_char = { i:ch for i,ch in enumerate(chars) }
 
 # hyperparameters
-hidden_size = 300 # size of hidden layer of neurons
-seq_length = 25 # number of steps to unroll the RNN for
+hidden_size = 500 # size of hidden layer of neurons
+seq_length = 40 # number of steps to unroll the RNN for
 # learning_rate = 1e-1
 learning_rate = 0.001
 
