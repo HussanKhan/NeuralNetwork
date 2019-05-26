@@ -86,11 +86,6 @@ def train(inputs, targets, prevHiddenStates):
        # Computes current hidden state, and adds it to dict
        allHiddenStates[x] = np.tanh(uX + hH + biasHidden)
 
-    #    allHiddenStates[x] = np.tanh(np.dot(inputLayer, allInputs[x]) + np.dot(hiddenHidden, allHiddenStates[x-1]) + biasHidden)
-
-    #    print(allHiddenStates[x])
-    #    exit()
-
        # Output from hidden to output
        allOutputs[x] = np.dot(hiddenOutput, allHiddenStates[x]) + biasOutput
     
@@ -195,9 +190,8 @@ def predict(seed, n, prevState):
         # Softmax output
         output = np.exp(output) / np.sum(np.exp(output))
 
-        # Returns index of highest value
-        # bestGuess = np.argmax(output.tolist())
-        bestGuess = random.randint(0,vocabSize-1)
+        # Random choice between using distribution from softmax above
+        bestGuess = np.random.choice(range(vocabSize), p=output.ravel())
         predictedChars.append(bestGuess)
         
         # Makes best guess into new input
@@ -246,7 +240,10 @@ while True:
 
     # set new hidden state, so network keeps track of time
     tempMemory = modelRes["lastHiddenState"]
+    
+    # Constally calculate loss
     smooth_loss = smooth_loss * 0.999 + modelRes["loss"] * 0.001
+
     # Make prediction, check status
     if currentIteration % 100 == 0:
         pred = predict(inputs[0], 200, tempMemory)
