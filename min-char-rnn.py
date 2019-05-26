@@ -10,44 +10,51 @@ def lossFun(inputs, targets, hprev):
   hprev is Hx1 array of initial hidden state
   returns the loss, gradients on model parameters, and last hidden state
   """
-  xs, hs, ys, ps = {}, {}, {}, {}
-  hs[-1] = np.copy(hprev)
+  allInputs, allHiddenStates, allOutputs, allProbabilties = {}, {}, {}, {}
+  allHiddenStates[-1] = np.copy(hprev)
   loss = 0
   
   # forward pass
   for t in xrange(len(inputs)):
-    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
-    xs[t][inputs[t]] = 1
-    hs[t] = np.tanh(np.dot(inputLayer, xs[t]) + np.dot(hiddenHidden, hs[t-1]) + bh) # hidden state
-    ys[t] = np.dot(hiddenOutput, hs[t]) + by # unnormalized log probabilities for next chars
-    ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
-    loss += -np.log(ps[t][targets[t],0]) # softmax (cross-entropy loss)
+    
+    allInputs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
+    allInputs[t][inputs[t]] = 1
+
+    allHiddenStates[t] = np.tanh(np.dot(inputLayer, allInputs[t]) + np.dot(hiddenHidden, allHiddenStates[t-1]) + bh) # hidden state
+
+    allOutputs[t] = np.dot(hiddenOutput, allHiddenStates[t]) + by # unnormalized log probabilities for next chars
+
+    allProbabilties[t] = np.exp(allOutputs[t]) / np.sum(np.exp(allOutputs[t])) # probabilities for next chars
+    
+    loss += -np.log(allProbabilties[t][targets[t],0]) # softmax (cross-entropy loss)
   
   # backward pass: compute gradients going backwards
   dinputLayer, dhiddenHidden, dhiddenOutput = np.zeros_like(inputLayer), np.zeros_like(hiddenHidden), np.zeros_like(hiddenOutput)
   dbh, dby = np.zeros_like(bh), np.zeros_like(by)
-  dhnext = np.zeros_like(hs[0])
+  deltaPrevHiddenBias = np.zeros_like(allHiddenStates[0])
   
   for t in reversed(xrange(len(inputs))):
 
-    dy = np.copy(ps[t])
-    dy[targets[t]] -= 1 # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
+    outputError = np.copy(allProbabilties[t])
+    outputError[targets[t]] -= 1 # backprop into y. see http://cs231n.github.io/neural-networks-case-stuoutputError/#grad if confused here
 
-    dhiddenOutput += np.dot(dy, hs[t].T)
-    dby += dy
+    dhiddenOutput += np.dot(outputError, allHiddenStates[t].T)
+    dby += outputError
     
-    dh = np.dot(hiddenOutput.T, dy) + dhnext # backprop into h
-    dhraw = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
-    dbh += dhraw
+    dh = np.dot(hiddenOutput.T, outputError) + deltaPrevHiddenBias # backprop into h
+    deltaHiddenRaw = (1 - allHiddenStates[t] * allHiddenStates[t]) * dh # backprop through tanh nonlinearity
+    dbh += deltaHiddenRaw
     
-    dinputLayer += np.dot(dhraw, xs[t].T)
-    dhiddenHidden += np.dot(dhraw, hs[t-1].T)
-    dhnext = np.dot(hiddenHidden.T, dhraw)
+    dinputLayer += np.dot(deltaHiddenRaw, allInputs[t].T)
+
+    dhiddenHidden += np.dot(deltaHiddenRaw, allHiddenStates[t-1].T)
+    
+    deltaPrevHiddenBias = np.dot(hiddenHidden.T, deltaHiddenRaw)
   
   for dparam in [dinputLayer, dhiddenHidden, dhiddenOutput, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
   
-  return loss, dinputLayer, dhiddenHidden, dhiddenOutput, dbh, dby, hs[len(inputs)-1]
+  return loss, dinputLayer, dhiddenHidden, dhiddenOutput, dbh, dby, allHiddenStates[len(inputs)-1]
 
 def sample(h, seed_ix, n):
   """ 
@@ -62,10 +69,9 @@ def sample(h, seed_ix, n):
     y = np.dot(hiddenOutput, h) + by
 
     p = np.exp(y) / np.sum(np.exp(y))
-    
+
     ix = np.random.choice(range(vocab_size), p=p.ravel())
-    print(p)
-    print(ix)
+ 
     x = np.zeros((vocab_size, 1))
     x[ix] = 1
     ixes.append(ix)
@@ -74,7 +80,7 @@ def sample(h, seed_ix, n):
 
 # data I/O
 # data = open('input.txt', 'r').read() # should be simple plain text file
-data = open('prideP.txt', 'r').read() # should be simple plain text file
+data = open('input.txt', 'r').read() # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print 'data has %d characters, %d unique.' % (data_size, vocab_size)
@@ -82,15 +88,17 @@ char_to_ix = { ch:i for i,ch in enumerate(chars) }
 ix_to_char = { i:ch for i,ch in enumerate(chars) }
 
 # hyperparameters
-hidden_size = 500 # size of hidden layer of neurons
-seq_length = 40 # number of steps to unroll the RNN for
-# learning_rate = 1e-1
-learning_rate = 0.001
+hidden_size = 100 # size of hidden layer of neurons
+seq_length = 25 # number of steallProbabilties to unroll the RNN for
+learning_rate = 1e-1
 
 
 # model parameters
+np.random.seed(4)
 inputLayer = np.random.randn(hidden_size, vocab_size)*0.01 # input to hidden
+np.random.seed(7)
 hiddenHidden = np.random.randn(hidden_size, hidden_size)*0.01 # hidden to hidden
+np.random.seed(10)
 hiddenOutput = np.random.randn(vocab_size, hidden_size)*0.01 # hidden to output
 
 bh = np.zeros((hidden_size, 1)) # hidden bias
@@ -106,7 +114,7 @@ smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 
 while True:
   
-  # prepare inputs (we're sweeping from left to right in steps seq_length long)
+  # prepare inputs (we're sweeping from left to right in steallProbabilties seq_length long)
   if p+seq_length+1 >= len(data) or n == 0: 
     hprev = np.zeros((hidden_size,1)) # reset RNN memory
     p = 0 # go from start of data
@@ -131,6 +139,8 @@ while True:
                                 [dinputLayer, dhiddenHidden, dhiddenOutput, dbh, dby], 
                                 [minputLayer, mhiddenHidden, mhiddenOutput, mbh, mby]):
     mem += dparam * dparam
+    # print(mem)
+    # exit()
     param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
   p += seq_length # move data pointer
